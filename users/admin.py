@@ -12,10 +12,10 @@ class CustomUserAdmin(UserAdmin):
 
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Персональна інформація', {'fields': ('first_name', 'last_name')}),
-        ('Авіа-дані', {'fields': ('role', 'phone_number', 'passport_number', 'date_of_birth')}),
-        ('Права доступу', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Важливі дати', {'fields': ('last_login', 'date_joined')}),
+        ('Full name', {'fields': ('first_name', 'last_name')}),
+        ('Personal information', {'fields': ('role', 'phone_number', 'passport_number', 'date_of_birth')}),
+        ('Access rights', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Date', {'fields': ('last_login', 'date_joined')}),
     )
 
     add_fieldsets = (

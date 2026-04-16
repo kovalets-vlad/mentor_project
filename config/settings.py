@@ -152,7 +152,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Airport API',
-    'DESCRIPTION': 'Система управління бронюванням авіаквитків та інфраструктурою аеропорту.',
+    'DESCRIPTION': 'Airline reservation and airport infrastructure management system',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
