@@ -3,6 +3,8 @@ from django.db import models
 from .choices import UserRole
 
 class User(AbstractUser):
+    email = models.EmailField(unique=True)
+    
     role = models.CharField(
         max_length=20,
         choices=UserRole.choices,
@@ -12,8 +14,12 @@ class User(AbstractUser):
     passport_number = models.CharField(max_length=20, blank=True, null=True)
     date_of_birth = models.DateField(blank=True, null=True)
 
+    USERNAME_FIELD = 'email'
+    
+    REQUIRED_FIELDS = ['username']
+
     def __str__(self):
-        return f"{self.username} ({self.get_role_display()})"
+        return f"{self.email} ({self.get_role_display()})"
 
     @property
     def is_staff_member(self):
