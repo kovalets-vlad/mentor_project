@@ -17,6 +17,7 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('first_name', 'Admin')
         extra_fields.setdefault('last_name', 'Adminov')
+        extra_fields.setdefault('role', UserRole.ADMIN) 
         
         return self.create_user(email, password, **extra_fields)
 
@@ -41,12 +42,7 @@ class User(AbstractUser):
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
-    
     REQUIRED_FIELDS = ['first_name', 'last_name'] 
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.email})"
-
-    @property
-    def is_staff_member(self):
-        return self.role in [UserRole.AIRLINE_STAFF, UserRole.AIRPORT_ADMIN]
