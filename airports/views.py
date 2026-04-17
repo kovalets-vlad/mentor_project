@@ -5,7 +5,7 @@ from .serializers import (
     AirplaneTypeSerializer, AirplaneSerializer,
     AirlineSerializer
 )
-from .permissions import IsAdminOrReadOnly
+from core.permissions import IsAdminOrReadOnly
 
 class CountryViewSet(viewsets.ModelViewSet):
     queryset = Country.objects.all()

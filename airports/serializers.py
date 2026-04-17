@@ -14,11 +14,9 @@ class AirportSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'city', 'country', 'country_name')
 
 class AirlineSerializer(serializers.ModelSerializer):
-    country_name = serializers.CharField(source='country.name', read_only=True)
-
     class Meta:
         model = Airline
-        fields = ('id', 'name', 'iata_code', 'country', 'country_name')
+        fields = ('id', 'name', 'iata_code')
 
 class AirplaneTypeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -26,8 +24,8 @@ class AirplaneTypeSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'rows', 'seats_in_row', 'capacity')
 
 class AirplaneSerializer(serializers.ModelSerializer):
-    airplane_type_name = serializers.CharField(source='airplane_type.name', read_only=True)
+    airplane_type_name = serializers.CharField(source='model.name', read_only=True)
 
     class Meta:
         model = Airplane
-        fields = ('id', 'name', 'model', 'airplane_type', 'airplane_type_name', 'airline')
+        fields = ('id', 'name', 'model', 'model', 'airplane_type_name', 'airline')

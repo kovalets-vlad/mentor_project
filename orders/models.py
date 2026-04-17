@@ -9,7 +9,7 @@ class Order(BaseModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders')
 
     def __str__(self):
-        return f"Order {self.id} by {self.user.username}"
+        return f"Order {self.id} by {self.user.email}"
 
 class Ticket(BaseModel):
     row = models.IntegerField()
