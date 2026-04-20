@@ -17,9 +17,20 @@ class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsOwnerOrAdmin] 
 
     def get_queryset(self):
-        if self.request.user.is_staff or self.request.user.role == UserRole.ADMIN:
-            return Order.objects.all().prefetch_related('tickets')
-        return Order.objects.filter(user=self.request.user).prefetch_related('tickets')
+            user = self.request.user
+            
+            queryset = Order.objects.all().prefetch_related('tickets')
+
+            if user.role == UserRole.SYSTEM_ADMIN or user.is_superuser:
+                return queryset
+                
+            if user.role == UserRole.AIRPORT_ADMIN and user.managed_airport:
+                return queryset.filter(tickets__flight__route__source=user.managed_airport).distinct()
+
+            if user.is_authenticated:
+                return queryset.filter(user=user)
+                
+            return queryset.none()
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

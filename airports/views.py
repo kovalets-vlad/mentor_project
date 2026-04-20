@@ -1,33 +1,40 @@
 from rest_framework import viewsets
-from .models import Country, Airport, Airline ,AirplaneType, Airplane
+from .models import Country, Airport, Airline, AirplaneType, Airplane
 from .serializers import (
     CountrySerializer, AirportSerializer, 
     AirplaneTypeSerializer, AirplaneSerializer,
     AirlineSerializer
 )
-from core.permissions import IsAdminOrReadOnly
+from core.filters import RoleBasedFilterBackend 
+from core.permissions import IsSystemAdminOrReadOnly
 
 class CountryViewSet(viewsets.ModelViewSet):
     queryset = Country.objects.all()
     serializer_class = CountrySerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [IsSystemAdminOrReadOnly] 
 
 class AirportViewSet(viewsets.ModelViewSet):
     queryset = Airport.objects.all()
     serializer_class = AirportSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [IsSystemAdminOrReadOnly]
 
 class AirlineViewSet(viewsets.ModelViewSet):
     queryset = Airline.objects.all()
     serializer_class = AirlineSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [IsSystemAdminOrReadOnly]
 
 class AirplaneTypeViewSet(viewsets.ModelViewSet):
-    queryset = AirplaneType.objects.all()
     serializer_class = AirplaneTypeSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [RoleBasedFilterBackend]
+    permission_classes = [IsAirlineManagerOrSuperAdmin] 
 
+    def get_queryset(self):
+        return AirplaneType.objects.all()
+    
 class AirplaneViewSet(viewsets.ModelViewSet):
-    queryset = Airplane.objects.all()
     serializer_class = AirplaneSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [RoleBasedFilterBackend]
+    permission_classes = [IsAirlineManagerOrSuperAdmin]
+
+    def get_queryset(self):
+        return Airplane.objects.all().select_related('model', 'airline')
