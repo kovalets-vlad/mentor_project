@@ -5,6 +5,9 @@ class AirplaneType(models.Model):
     rows = models.IntegerField()
     seats_in_row = models.IntegerField()
 
+    business_class_rows = models.IntegerField(default=0, help_text="Number of rows starting from the front")
+    first_class_rows = models.IntegerField(default=0)
+
     @property
     def capacity(self):
         return self.rows * self.seats_in_row

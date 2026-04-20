@@ -10,7 +10,7 @@ class OrderStatus(models.TextChoices):
     COMPLETED = 'completed', _('Completed (Flight Done)') 
 
 class TicketStatus(models.TextChoices):
-    BOOKED = "booked", "Booked"
-    PAID = "paid", "Paid"
-    CANCELLED = "cancelled",  "Cancelled"
-    USED = "used", "Used"
+    BOOKED = "booked", _("Booked")
+    PAID = "paid", _("Paid")
+    CANCELLED = "cancelled", _("Cancelled")
+    USED = "used", _("Used")

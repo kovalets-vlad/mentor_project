@@ -1,14 +1,13 @@
 from rest_framework import serializers
-from .models import Order, Ticket, TicketStatus
+from django.db.models import Sum
 
-from rest_framework import serializers
 from .models import Order, Ticket, TicketStatus, OrderStatus
 
 class TicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
-        fields = ('id', 'row', 'seat', 'flight', 'order', 'status')
-        read_only_fields = ('status',) 
+        fields = ('id', 'row', 'seat', 'flight', 'order', 'status', 'price')
+        read_only_fields = ('status', 'price')
 
     def validate(self, attrs):
         order = attrs.get('order', getattr(self.instance, 'order', None))
@@ -51,11 +50,27 @@ class TicketSerializer(serializers.ModelSerializer):
                 )
             
         return attrs
+    
+    def create(self, validated_data):
+        flight = validated_data['flight']
+        row = validated_data['row']
+        
+        calculated_price = flight.calculate_seat_price(row)
+        
+        validated_data['price'] = calculated_price
+        
+        return super().create(validated_data)
 
 class OrderSerializer(serializers.ModelSerializer):
     tickets = TicketSerializer(many=True, read_only=True)
+    total_price = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
-        fields = ('id', 'user', 'status', 'created_at', 'tickets')
+        fields = ('id', 'user', 'status', 'created_at', 'total_price', 'tickets')
         read_only_fields = ('user', 'status', 'created_at')
+
+    def get_total_price(self, obj):
+        total = obj.tickets.aggregate(Sum('price'))['price__sum']
+        
+        return total if total is not None else 0.00
