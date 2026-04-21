@@ -6,7 +6,7 @@ class IsOwnerOrAdmin(permissions.BasePermission):
         if obj == request.user:
             return True
             
-        if request.user.is_superuser or request.user.role == UserRole.SYSTEM_ADMIN:
+        if request.user.is_system_admin:
             return True
 
         return False

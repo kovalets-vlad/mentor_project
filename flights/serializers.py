@@ -56,6 +56,8 @@ class FlightDetailSerializer(FlightBaseSerializer):
     price_business = serializers.SerializerMethodField()
     price_first = serializers.SerializerMethodField()
 
+    total_seats = serializers.IntegerField(source='airplane.model.capacity', read_only=True)
+
     class Meta(FlightBaseSerializer.Meta):
         fields = FlightBaseSerializer.Meta.fields + (
             'route', 'airplane', 'route_details', 'airplane_name',
@@ -94,6 +96,9 @@ class FlightCreateUpdateSerializer(serializers.ModelSerializer):
         airplane = attrs.get('airplane', getattr(instance, 'airplane', None))
         route = attrs.get('route', getattr(instance, 'route', None))
         base_price = attrs.get('base_price', getattr(instance, 'base_price', None))
+        
+        coef_business = attrs.get('coef_business_class', getattr(instance, 'coef_business_class', None))
+        coef_first = attrs.get('coef_first_class', getattr(instance, 'coef_first_class', None))
 
         if user.is_airport_manager and route:
             if route.source != user.managed_airport:
@@ -110,7 +115,23 @@ class FlightCreateUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"arrival_time": "Arrival time must be later than departure time!"})
 
         if base_price is not None and base_price <= 0:
-            raise serializers.ValidationError({"base_price": "Base price must be greater than 0."})
+            raise serializers.ValidationError({"base_price": "Base price must be strictly greater than 0."})
+
+        if coef_business is not None and coef_business < 1:
+            raise serializers.ValidationError(
+                {"coef_business_class": "Business class coefficient must be at least 1.0 (base economy price)."}
+            )
+            
+        if coef_first is not None and coef_first < 1:
+            raise serializers.ValidationError(
+                {"coef_first_class": "First class coefficient must be at least 1.0."}
+            )
+            
+        if coef_first is not None and coef_business is not None:
+            if coef_first < coef_business:
+                raise serializers.ValidationError(
+                    {"coef_first_class": "First class cannot be cheaper than business class!"}
+                )
 
         if airplane and departure_time and arrival_time:
             overlaps = Flight.objects.filter(

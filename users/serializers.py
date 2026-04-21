@@ -19,8 +19,23 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
         return user
 
-class UserSerializer(serializers.ModelSerializer):
+class UserShortSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'email', 'first_name', 'last_name', 'role')
+        read_only_fields = fields
+
+class UserDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'email', 'first_name', 'last_name', 'role', 'phone_number', 'passport_number', 'date_of_birth')
         read_only_fields = ('id', 'role') 
+
+class UserAdminUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            'id', 'email', 'first_name', 'last_name', 
+            'role', 'managed_airport', 'managed_airline', 'is_active'
+        )
+        read_only_fields = ('id', 'email') 
