@@ -72,6 +72,10 @@ class User(AbstractUser):
     @property
     def is_airline_manager(self):
         return self.role == UserRole.AIRLINE_ADMIN and self.managed_airline is not None
+    
+    @property
+    def is_customer(self):
+        return self.role == UserRole.CUSTOMER
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.email})"

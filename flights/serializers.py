@@ -56,6 +56,8 @@ class FlightDetailSerializer(FlightBaseSerializer):
     price_business = serializers.SerializerMethodField()
     price_first = serializers.SerializerMethodField()
 
+    total_seats = serializers.IntegerField(source='airplane.model.capacity', read_only=True)
+
     class Meta(FlightBaseSerializer.Meta):
         fields = FlightBaseSerializer.Meta.fields + (
             'route', 'airplane', 'route_details', 'airplane_name',

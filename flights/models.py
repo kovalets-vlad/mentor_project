@@ -5,20 +5,20 @@ from orders.choices import TicketStatus
 from airports.models import Airport, Airplane
 from core.models import BaseModel
 from .choices import FlightStatus
-from users.choices import UserRole
 
 class RouteQuerySet(models.QuerySet):
     def visible_for(self, user):
-        if user.is_anonymous:
+        if not user.is_authenticated:
             return self.all() 
         
-        if user.is_system_admin or user.role == UserRole.AIRLINE_ADMIN:
+        if user.is_system_admin or user.is_airline_manager:
             return self.all()
 
-        if user.role == UserRole.AIRPORT_ADMIN and user.managed_airport:
+        if user.is_airport_manager:
             return self.filter(
                 Q(source=user.managed_airport) | Q(destination=user.managed_airport)
             )
+            
         return self.all()
 
 class Route(models.Model):
@@ -28,15 +28,13 @@ class Route(models.Model):
 
     objects = RouteQuerySet.as_manager()
 
-
     def __str__(self):
         return f"{self.source.name} -> {self.destination.name}"
     
 
 class FlightQuerySet(models.QuerySet):
     def visible_for(self, user):
-
-        if user.is_anonymous or user.role == UserRole.CUSTOMER:
+        if not user.is_authenticated or user.is_customer:
             return self.filter(status=FlightStatus.SCHEDULED)
         
         if user.is_system_admin:
