@@ -6,7 +6,6 @@ from django.utils import timezone
 from datetime import timedelta
 from django.db import transaction
 
-from users.choices import UserRole
 from .permissions import IsOwnerOrAdmin 
 from .models import Order, Ticket
 from .serializers import OrderSerializer, TicketSerializer
@@ -17,20 +16,7 @@ class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsOwnerOrAdmin] 
 
     def get_queryset(self):
-            user = self.request.user
-            
-            queryset = Order.objects.all().prefetch_related('tickets')
-
-            if user.role == UserRole.SYSTEM_ADMIN or user.is_superuser:
-                return queryset
-                
-            if user.role == UserRole.AIRPORT_ADMIN and user.managed_airport:
-                return queryset.filter(tickets__flight__route__source=user.managed_airport).distinct()
-
-            if user.is_authenticated:
-                return queryset.filter(user=user)
-                
-            return queryset.none()
+        return Order.objects.visible_for(self.request.user).prefetch_related('tickets')
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -39,7 +25,7 @@ class OrderViewSet(viewsets.ModelViewSet):
     def pay(self, request, pk=None):
         with transaction.atomic():
             try:
-                order = Order.objects.select_for_update().get(pk=pk)
+                order = self.get_queryset().select_for_update().get(pk=pk)
                 
                 if order.status != OrderStatus.PENDING:
                     return Response(
@@ -54,7 +40,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
             except Order.DoesNotExist:
                 return Response(
-                    {"detail": "Order not found."}, 
+                    {"detail": "Order not found or you do not have permission to view it."}, 
                     status=status.HTTP_404_NOT_FOUND
                 )
             except Exception as e:
@@ -70,13 +56,9 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
-        """
-        Cancels a pending order and releases associated tickets.
-        Ensures that both order and tickets are updated together.
-        """
         with transaction.atomic():
             try:
-                order = Order.objects.select_for_update().get(pk=pk)
+                order = self.get_queryset().select_for_update().get(pk=pk)
 
                 if order.status != OrderStatus.PENDING:
                     return Response(
@@ -90,7 +72,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 order.tickets.update(status=TicketStatus.CANCELLED)
 
             except Order.DoesNotExist:
-                return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"detail": "Order not found or access denied."}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
                 return Response(
                     {"detail": f"An error occurred during cancellation: {str(e)}"}, 
@@ -101,15 +83,11 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def refund(self, request, pk=None):
-        """
-        Refunds a paid order. Checks time constraints and updates status.
-        Uses atomic transaction to ensure financial consistency.
-        """
         MAGIC_HOURS = 3 
         
         with transaction.atomic():
             try:
-                order = Order.objects.select_for_update().get(pk=pk)
+                order = self.get_queryset().select_for_update().get(pk=pk)
 
                 if order.status != OrderStatus.PAID:
                     return Response(
@@ -134,7 +112,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 order.tickets.update(status=TicketStatus.CANCELLED)
 
             except Order.DoesNotExist:
-                return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"detail": "Order not found or access denied."}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
                 return Response(
                     {"detail": f"Refund failed: {str(e)}"}, 
@@ -149,9 +127,7 @@ class TicketViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
 
     def get_queryset(self):
-        if self.request.user.is_staff or self.request.user.role == UserRole.ADMIN:
-            return Ticket.objects.all().select_related('flight', 'order')
-        return Ticket.objects.filter(order__user=self.request.user).select_related('flight', 'order')
+        return Ticket.objects.visible_for(self.request.user).select_related('flight', 'order')
     
     def destroy(self, request, *args, **kwargs):
         ticket = self.get_object()

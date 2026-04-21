@@ -1,6 +1,4 @@
 from rest_framework import serializers
-from django.db.models import Sum
-
 from .models import Order, Ticket, TicketStatus, OrderStatus
 
 class TicketSerializer(serializers.ModelSerializer):
@@ -14,11 +12,19 @@ class TicketSerializer(serializers.ModelSerializer):
         flight = attrs.get('flight', getattr(self.instance, 'flight', None))
         row = attrs.get('row', getattr(self.instance, 'row', None))
         seat = attrs.get('seat', getattr(self.instance, 'seat', None))
+        
+        user = self.context.get('request').user
 
-        if order and order.status != OrderStatus.PENDING:
-            raise serializers.ValidationError({
-                "order": f"Cannot add or modify tickets in an order that is {order.status}."
-            })
+        if order:
+            if order.user != user and not user.is_system_admin:
+                raise serializers.ValidationError({
+                    "order": "You can only add tickets to your own orders."
+                })
+                
+            if order.status != OrderStatus.PENDING:
+                raise serializers.ValidationError({
+                    "order": f"Cannot add or modify tickets in an order that is {order.status}."
+                })
 
         if flight and row and seat:
             model = flight.airplane.model
@@ -56,21 +62,20 @@ class TicketSerializer(serializers.ModelSerializer):
         row = validated_data['row']
         
         calculated_price = flight.calculate_seat_price(row)
-        
         validated_data['price'] = calculated_price
         
         return super().create(validated_data)
 
 class OrderSerializer(serializers.ModelSerializer):
     tickets = TicketSerializer(many=True, read_only=True)
-    total_price = serializers.SerializerMethodField()
+    
+    total_price = serializers.DecimalField(
+            max_digits=10, 
+            decimal_places=2, 
+            read_only=True
+        )
 
     class Meta:
         model = Order
         fields = ('id', 'user', 'status', 'created_at', 'total_price', 'tickets')
         read_only_fields = ('user', 'status', 'created_at')
-
-    def get_total_price(self, obj):
-        total = obj.tickets.aggregate(Sum('price'))['price__sum']
-        
-        return total if total is not None else 0.00

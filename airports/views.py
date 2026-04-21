@@ -6,7 +6,7 @@ from .serializers import (
     AirlineSerializer
 )
 from core.filters import RoleBasedFilterBackend 
-from core.permissions import IsSystemAdminOrReadOnly
+from core.permissions import IsSystemAdminOrReadOnly, IsAirlineManagerOrSuperAdmin
 
 class CountryViewSet(viewsets.ModelViewSet):
     queryset = Country.objects.all()
