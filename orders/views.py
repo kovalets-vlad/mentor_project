@@ -10,6 +10,7 @@ from .permissions import IsOwnerOrAdmin
 from .models import Order, Ticket
 from .serializers import OrderSerializer, TicketSerializer
 from .choices import OrderStatus, TicketStatus
+from .tasks import expire_pending_order
 
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
@@ -19,7 +20,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         return Order.objects.visible_for(self.request.user).prefetch_related('tickets')
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        order = serializer.save(user=self.request.user)
+
+        expire_pending_order.apply_async((order.id,), countdown=900)
 
     @action(detail=True, methods=['post'])
     def pay(self, request, pk=None):
