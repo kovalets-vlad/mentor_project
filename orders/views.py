@@ -83,6 +83,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def refund(self, request, pk=None):
+        #TO DO: Come up with something with him.
         MAGIC_HOURS = 3 
         
         with transaction.atomic():
