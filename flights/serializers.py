@@ -36,41 +36,29 @@ class RouteSerializer(serializers.ModelSerializer):
             )
             
         return attrs
-
+    
 class FlightBaseSerializer(serializers.ModelSerializer):
-    route_details = serializers.StringRelatedField(source='route', read_only=True)
-    airplane_name = serializers.CharField(source='airplane.name', read_only=True)
-
-    class Meta:
-        model = Flight
-        fields = ('id', 'flight_number', 'departure_time', 'arrival_time', 'status')
-
-
-class FlightListSerializer(FlightBaseSerializer):
-    class Meta(FlightBaseSerializer.Meta):
-        fields = FlightBaseSerializer.Meta.fields + ('route_details', 'airplane_name')
-
-
-class FlightDetailSerializer(FlightBaseSerializer):
     available_seats = serializers.SerializerMethodField()
     price_business = serializers.SerializerMethodField()
     price_first = serializers.SerializerMethodField()
+    route_details = serializers.StringRelatedField(source='route', read_only=True)
+    airplane_name = serializers.CharField(source='airplane.model.name', read_only=True) 
 
-    total_seats = serializers.IntegerField(source='airplane.model.capacity', read_only=True)
+    seats_breakdown = serializers.SerializerMethodField()
 
-    class Meta(FlightBaseSerializer.Meta):
-        fields = FlightBaseSerializer.Meta.fields + (
-            'route', 'airplane', 'route_details', 'airplane_name',
-            'total_seats', 'available_seats', 'base_price', 
-            'price_business', 'price_first'
+    class Meta:
+        model = Flight
+        fields = (
+            'id', 'flight_number', 'departure_time', 'arrival_time',
+            'route_details', 'airplane_name', 'seats_breakdown', 
         )
+
     def get_available_seats(self, obj):
         total = obj.airplane.model.capacity 
         active_tickets = getattr(obj, 'active_tickets_count', 0)
         return max(0, total - active_tickets) 
 
     def _calculate_class_price(self, base_price, coef):
-        """Helper to calculate price with decimal precision"""
         if not base_price:
             return None
         return round(base_price * Decimal(str(coef)), 2)
@@ -81,6 +69,51 @@ class FlightDetailSerializer(FlightBaseSerializer):
     def get_price_first(self, obj):
         return self._calculate_class_price(obj.base_price, obj.coef_first_class)
 
+    def get_seats_breakdown(self, obj):
+        plane = obj.airplane.model
+        
+        SEATS_PER_ROW = 6 
+
+        total_first = plane.first_class_rows * SEATS_PER_ROW
+        total_business = plane.business_class_rows * SEATS_PER_ROW
+        total_economy = plane.capacity - (total_first + total_business)
+
+        sold_first = getattr(obj, 'sold_first', 0)
+        sold_business = getattr(obj, 'sold_business', 0)
+        
+        total_sold = getattr(obj, 'active_tickets_count', 0)
+        sold_economy = total_sold - sold_first - sold_business
+
+        return {
+            "first_class": {
+                "available": max(0, total_first - sold_first),
+                "price": self.get_price_first(obj)
+            },
+            "business": {
+                "available": max(0, total_business - sold_business),
+                "price": self.get_price_business(obj)
+            },
+            "economy": {
+                "available": max(0, total_economy - sold_economy),
+                "price": obj.base_price
+            }
+        }
+
+
+class FlightListSerializer(FlightBaseSerializer):
+    class Meta(FlightBaseSerializer.Meta):
+        fields = FlightBaseSerializer.Meta.fields
+
+
+class FlightDetailSerializer(FlightBaseSerializer):
+    total_seats = serializers.IntegerField(source='airplane.model.capacity', read_only=True)
+
+    class Meta(FlightBaseSerializer.Meta):
+        fields = FlightBaseSerializer.Meta.fields + (
+            'route', 'airplane', 'route_details', 'airplane_name',
+            'total_seats', 'base_price', 
+            'available_seats', 'price_business', 'price_first'
+        )
 
 class FlightCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
