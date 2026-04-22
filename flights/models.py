@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import Count, Q
+from django.db.models import Count, Q, F
 
 from orders.choices import TicketStatus
 from airports.models import Airport, Airplane
@@ -55,6 +55,17 @@ class FlightQuerySet(models.QuerySet):
             active_tickets_count=Count(
                 'tickets', 
                 filter=~Q(tickets__status=TicketStatus.CANCELLED)
+            ),
+            sold_first=Count(
+                'tickets',
+                filter=~Q(tickets__status=TicketStatus.CANCELLED) & 
+                       Q(tickets__row__lte=F('airplane__model__first_class_rows'))
+            ),
+            sold_business=Count(
+                'tickets',
+                filter=~Q(tickets__status=TicketStatus.CANCELLED) & 
+                       Q(tickets__row__gt=F('airplane__model__first_class_rows')) & 
+                       Q(tickets__row__lte=F('airplane__model__first_class_rows') + F('airplane__model__business_class_rows'))
             )
         )
 
