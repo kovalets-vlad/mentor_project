@@ -1,7 +1,7 @@
 version: "3.8"
 
 services:
-    db:
+    airport_db_container:
         image: postgres:15
         container_name: airport_db_container
         restart: always
@@ -34,7 +34,7 @@ services:
         env_file:
             - .env
         depends_on:
-            - db
+            - airport_db_container
             - redis
 
     celery:
@@ -46,7 +46,7 @@ services:
         env_file:
             - .env
         depends_on:
-            - db
+            - airport_db_container
             - redis
             - backend
 
